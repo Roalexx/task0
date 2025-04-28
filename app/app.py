@@ -1,14 +1,23 @@
 from flask import Flask , request, jsonify
 from flasgger import Swagger
 from tasks import sum_numbers, uppercase, reverse_text
+from sync_tasks import create_asset, create_user, list_assets, list_users
+from config import DATABASE_URL
+from models.db import db
+from models.user import User
+from models.asset import Asset
 import redis
 import pika
 import base64
 import json
 
 app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 swagger = Swagger(app)
 redis_conn = redis.Redis(host="redis", port=6379, db=0)
+
 
 task_map = {
     "reverse_text": reverse_text,
@@ -129,6 +138,125 @@ def get_queue():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/add_user', methods=["POST"])
+def add_user():
+    """
+    Add a new user
+    ---
+    parameters:
+      - name: username
+        in: formData
+        type: string
+        required: true
+        description: Username of the new user
+      - name: email
+        in: formData
+        type: string
+        required: true
+        description: Email of the new user
+    responses:
+      200:
+        description: User created successfully
+        schema:
+          id: CreateUserResponse
+          properties:
+            message:
+              type: string
+            user_id:
+              type: integer
+    """
+    username = request.form['username']
+    email = request.form['email']
+    result = create_user(username,email)
+    return jsonify(result)
+
+@app.route('/get_users', methods=["GET"])
+def get_users():
+    """
+    List all users
+    ---
+    responses:
+      200:
+        description: A list of all users
+        schema:
+          type: array
+          items:
+            properties:
+              id:
+                type: integer
+              username:
+                type: string
+              email:
+                type: string
+    """
+    result = list_users()
+    return jsonify(result)
+
+@app.route('/add_asset', methods=["POST"])
+def add_asset():
+    """
+    Add a new asset
+    ---
+    parameters:
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: Name of the asset
+      - name: value
+        in: formData
+        type: number
+        required: true
+        description: Value of the asset
+      - name: user_id
+        in: formData
+        type: integer
+        required: true
+        description: ID of the user who owns the asset
+    responses:
+      200:
+        description: Asset created successfully
+        schema:
+          id: CreateAssetResponse
+          properties:
+            message:
+              type: string
+            asset_id:
+              type: integer
+    """
+    name = request.form['name']
+    value = float(request.form['value'])
+    user_id = int(request.form['user_id'])
+    result = create_asset(name, value, user_id)
+    return jsonify(result)
+
+@app.route('/get_asset', methods=["GET"])
+def get_asset():
+    """
+    List all assets
+    ---
+    responses:
+      200:
+        description: A list of all assets
+        schema:
+          type: array
+          items:
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              value:
+                type: number
+              owner_username:
+                type: string
+    """
+    result = list_assets()
+    return jsonify(result)
+
+db.init_app(app)
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(host="0.0.0.0", port=5000)
