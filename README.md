@@ -53,7 +53,7 @@ KULLANIM SEKLI
     Tum gorevler task/py icinde tanimli fonksiyonlar uzerinden caisir
 
 KULLANILAN KUTUPHANLER
-    flask       -rest api 
+    flask       -rest api \n
     flasgger    -kullanici arayuzu
     celery      -que sistem duzenleyici
     redis       -que icin database 
