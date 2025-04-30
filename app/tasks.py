@@ -24,7 +24,7 @@ def uppercase(self, text):
 @celery.task(bind=True, name="tasks.sum_numbers")
 def sum_numbers(self, numbers):
      result = sum(map(int, numbers.split("+")))
-     redis_conn.hset("task_result", self.request.id, json.dumps({
+     redis_conn.hset("task_results", self.request.id, json.dumps({
           "task_id": self.request.id,
           "status": "queued"
      }))
